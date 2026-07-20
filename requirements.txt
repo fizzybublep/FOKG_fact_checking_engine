@@ -1,6 +1,4 @@
-```text
+# This project uses only Python standard library modules.
+# No external pip packages are required.
+# Recommended Python version: 3.10 or newer.
 
-# No external Python packages required.
-# Use Python 3.10 or newer.
-
-```
