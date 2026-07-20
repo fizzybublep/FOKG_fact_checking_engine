@@ -22,6 +22,7 @@ Venus_Williams birthPlace Lynwood,_California
 The output must contain one score per fact.
 
 ## Project Files
+
 '''text
 FOKG_fact_checking_engine/
   Data/
