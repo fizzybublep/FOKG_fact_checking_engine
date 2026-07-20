@@ -1,4 +1,2 @@
-```txt
 # No external Python packages required.
 # Use Python 3.10 or newer.
-```
