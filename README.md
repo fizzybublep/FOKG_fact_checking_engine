@@ -106,7 +106,7 @@ Result file: outputs/result.ttl
 ```
 ## Method Summary
 
-The model is a simple statistical baseline, not a neural network.
+The model is a simple statistical baseline.
 
 It learns from the labeled training facts by counting patterns such as:
 
