@@ -105,6 +105,11 @@ Experiment type: Fact Checking
 Reference dataset: SW 2022 Test
 Result file: outputs/result.ttl
 ```
+
+## GERBIL SCORE GENERATED
+Final Score : 0.679
+https://gerbil-kbc.aksw.org/gerbil/experiment?id=202607200001
+
 ## Method Summary
 
 The model is a simple statistical baseline.
