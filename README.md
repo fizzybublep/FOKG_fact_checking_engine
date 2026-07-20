@@ -23,7 +23,7 @@ The output must contain one score per fact.
 
 ## Project Files
 
-'''text
+```text
 FOKG_fact_checking_engine/
   Data/
     KG-2022-test.nt (1).txt
@@ -35,7 +35,7 @@ FOKG_fact_checking_engine/
   .gitignore
   README.md
   requirements.txt
-'''
+```
 
 ## Setup
 
