@@ -26,12 +26,12 @@ The output must contain one score per fact.
 ```text
 FOKG_fact_checking_engine/
   Data/
-    KG-2022-test.nt (1).txt
-    KG-2022-train.nt (1).txt
+    KG-2022-test.nt.txt
+    KG-2022-train.nt.txt
   outputs/
     result.ttl
   src/
-    fact_check.py
+    FACT_CHECKING_ENGINE.py
   .gitignore
   README.md
   requirements.txt
@@ -39,7 +39,9 @@ FOKG_fact_checking_engine/
 
 ## Setup
 
-Create and activate a virtual environment:
+This project does not require any external Python packages, so it can be run directly if Python 3.10 or newer is installed.
+
+Optional virtual environment setup:
 
 ```powershell
 python -m venv .venv
@@ -47,32 +49,24 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Even though there are no external packages, using a virtual environment is good practice for reproducibility.
-
 ## Running The Project
 
-Place the provided dataset files in a `data/` folder:
+After cloning the repository, the required files are already included in the project structure:
 
 ```text
-data/KG-2022-train.nt.txt
-data/KG-2022-test.nt.txt
+FOKG_fact_checking_engine/
+  src/
+    FACT_CHECKING_ENGINE.py
+  data/
+    KG-2022-train.nt.txt
+    KG-2022-test.nt.txt
 ```
 
 Then run:
 
 ```powershell
-python .\src\fact_check.py --train ".\data\KG-2022-train.nt.txt" --test ".\data\KG-2022-test.nt.txt" --output ".\outputs\result.ttl"
+python .\src\FACT_CHECKING_ENGINE.py --train ".\data\KG-2022-train.nt.txt" --test ".\data\KG-2022-test.nt.txt" --output ".\outputs\result.ttl"
 ```
-
-## Optional Benchmark
-
-To run the internal 5-fold benchmark on the training data:
-
-```powershell
-python .\src\fact_check.py --train ".\data\KG-2022-train.nt.txt" --test ".\data\KG-2022-test.nt.txt" --output ".\outputs\result.ttl" --benchmark
-```
-
-This prints an estimated AUC score using the labeled training data. The official score is still the GERBIL score.
 
 ## Output File
 
