@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
+
 .venv/
-outputs/*.ttl
-!outputs/.gitkeep
+.idea/
+*.iml
+

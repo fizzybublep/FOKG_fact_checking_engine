@@ -8,16 +8,24 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+# RDF property URIs used in the input files.
+# Each fact is represented as an rdf:Statement with subject, predicate, and object.
 RDF_SUBJECT = "http://www.w3.org/1999/02/22-rdf-syntax-ns#subject"
 RDF_PREDICATE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#predicate"
 RDF_OBJECT = "http://www.w3.org/1999/02/22-rdf-syntax-ns#object"
+
+# Property URI required by the GERBIL fact-checking task.
 TRUTH_VALUE = "http://swc2017.aksw.org/hasTruthValue"
+
+# GERBIL expects predicted truth values to be written as xsd:double.
 XSD_DOUBLE = "http://www.w3.org/2001/XMLSchema#double"
 
+# Regular expressions for reading simple N-Triples/Turtle-style lines.
 TRIPLE_RE = re.compile(r'^\s*<([^>]+)>\s+<([^>]+)>\s+(.+?)\s*\.\s*$')
 URI_RE = re.compile(r'^<([^>]+)>$')
 LITERAL_RE = re.compile(r'^"((?:[^"\\]|\\.)*)"(?:\^\^<([^>]+)>)?$')
 
+# Stores one extracted RDF fact.
 @dataclass(frozen=True)
 class Fact:
     fact_uri: str
@@ -26,6 +34,7 @@ class Fact:
     object: str
     truth: float | None = None
 
+# Removes RDF URI/literal wrappers from an object value.
 def parse_object(raw: str) -> str:
     uri_match = URI_RE.match(raw)
     if uri_match:
@@ -35,6 +44,7 @@ def parse_object(raw: str) -> str:
         return literal_match.group(1)
     return raw
 
+# Reads a statement file and converts it into Fact objects.
 def parse_statement_file(path: Path) -> list[Fact]:
     statements: dict[str, dict[str, object]] = defaultdict(dict)
     with path.open("r", encoding="utf-8", errors="replace") as handle:
@@ -63,22 +73,28 @@ def parse_statement_file(path: Path) -> list[Fact]:
         facts.append(Fact(fact_uri, str(fields["subject"]), str(fields["predicate"]), str(fields["object"]), float(fields["truth"]) if "truth" in fields else None))
     return facts
 
+# Gets the readable final part of a URI.
 def uri_tail(uri: str) -> str:
     return uri.rsplit("/", 1)[-1].rsplit("#", 1)[-1].replace("_", " ").replace(",", " ").lower()
 
+# Splits a URI name into simple text tokens.
 def token_set(uri: str) -> set[str]:
     return {token for token in re.split(r"[^a-z0-9]+", uri_tail(uri)) if len(token) > 2}
 
+# Calculates a smoothed probability to avoid overconfident scores.
 def beta_mean(successes: float, total: float, prior: float = 0.5, strength: float = 4.0) -> float:
     return (successes + prior * strength) / (total + strength)
 
+# Converts a probability into log-odds.
 def logit(value: float) -> float:
     value = min(max(value, 1e-6), 1.0 - 1e-6)
     return math.log(value / (1.0 - value))
 
+# Converts log-odds back into a probability.
 def sigmoid(value: float) -> float:
     return 1.0 / (1.0 + math.exp(-value))
 
+# Learns simple statistical patterns from training facts.
 class FactScorer:
     def __init__(self) -> None:
         self.global_rate = 0.5
@@ -97,6 +113,7 @@ class FactScorer:
         self.true_objects_by_subject_predicate: dict[tuple[str, str], set[str]] = defaultdict(set)
         self.functional_predicates: set[str] = set()
 
+    # Learns truth-rate statistics from labeled facts.
     def fit(self, facts: Iterable[Fact]) -> None:
         labeled = [fact for fact in facts if fact.truth is not None]
         if not labeled:
@@ -133,9 +150,11 @@ class FactScorer:
             if single_object_ratio >= 0.9 and average_objects <= 1.2:
                 self.functional_predicates.add(predicate)
 
+    # Returns a smoothed truth rate for one feature.
     def rate(self, true_counter: Counter, count_counter: Counter, key, strength: float = 4.0) -> float:
         return beta_mean(true_counter[key], count_counter[key], self.global_rate, strength)
 
+    # Predicts a truth score for one fact.
     def score(self, fact: Fact) -> float:
         sp = (fact.subject, fact.predicate)
         po = (fact.predicate, fact.object)
@@ -165,38 +184,7 @@ class FactScorer:
         logit_average = sum(weight * logit(value) for weight, value in components) / weight_sum
         return min(max(sigmoid(logit_average), 0.0), 1.0)
 
-def auc(labels: list[float], scores: list[float]) -> float:
-    pairs = sorted(zip(scores, labels), key=lambda item: item[0])
-    positives = sum(1 for label in labels if label >= 0.5)
-    negatives = len(labels) - positives
-    if positives == 0 or negatives == 0:
-        return float("nan")
-    rank_sum = 0.0
-    index = 0
-    while index < len(pairs):
-        end = index + 1
-        while end < len(pairs) and pairs[end][0] == pairs[index][0]:
-            end += 1
-        average_rank = (index + 1 + end) / 2.0
-        rank_sum += sum(1 for _score, label in pairs[index:end] if label >= 0.5) * average_rank
-        index = end
-    return (rank_sum - positives * (positives + 1) / 2.0) / (positives * negatives)
-
-def benchmark(facts: list[Fact], folds: int = 5) -> float:
-    labels: list[float] = []
-    scores: list[float] = []
-    ordered = sorted(facts, key=lambda fact: fact.fact_uri)
-    for fold in range(folds):
-        train = [fact for index, fact in enumerate(ordered) if index % folds != fold]
-        validation = [fact for index, fact in enumerate(ordered) if index % folds == fold]
-        scorer = FactScorer()
-        scorer.fit(train)
-        for fact in validation:
-            if fact.truth is not None:
-                labels.append(fact.truth)
-                scores.append(scorer.score(fact))
-    return auc(labels, scores)
-
+# Writes scores in the GERBIL TTL result format.
 def write_result(path: Path, facts: Iterable[Fact], scorer: FactScorer) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as handle:
@@ -204,20 +192,19 @@ def write_result(path: Path, facts: Iterable[Fact], scorer: FactScorer) -> None:
             score = scorer.score(fact)
             handle.write(f'<{fact.fact_uri}> <{TRUTH_VALUE}> "{score:.6f}"^^<{XSD_DOUBLE}> .\n')
 
+# Reads command-line arguments.
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate GERBIL fact-checking scores.")
     parser.add_argument("--train", type=Path, required=True, help="Path to labeled training .nt/.ttl file.")
     parser.add_argument("--test", type=Path, required=True, help="Path to unlabeled test .nt/.ttl file.")
     parser.add_argument("--output", type=Path, default=Path("outputs/result.ttl"), help="Output result TTL path.")
-    parser.add_argument("--benchmark", action="store_true", help="Run 5-fold training AUC estimate.")
     return parser.parse_args()
 
+# Runs the full parse, train, score, and write pipeline.
 def main() -> None:
     args = parse_args()
     train_facts = parse_statement_file(args.train)
     test_facts = parse_statement_file(args.test)
-    if args.benchmark:
-        print(f"5-fold training AUC estimate: {benchmark(train_facts):.4f}")
     scorer = FactScorer()
     scorer.fit(train_facts)
     write_result(args.output, test_facts, scorer)
