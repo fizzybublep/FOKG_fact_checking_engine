@@ -4,6 +4,10 @@ This project builds a GERBIL-compatible fact-checking result file for the SW 202
 
 The system reads RDF statement data, learns simple statistical patterns from labeled training facts, predicts truth values for test facts, and writes a `result.ttl` file for GERBIL evaluation.
 
+## Student Information
+Name : Bobby Patel
+Matriculation Number : 4053863
+
 ## Project Goal
 
 Given a fact represented as an RDF statement, predict a veracity value between:
@@ -75,6 +79,7 @@ The script creates:
 ```text
 outputs/result.ttl
 ```
+Note : Since the repository already has the result.ttl file, the script will output the new generated "result.ttl" in the same directory again and replace the old one.
 
 Each line has this format:
 
@@ -95,9 +100,11 @@ http://gerbil-kbc.aksw.org/gerbil/config
 Choose:
 
 ```text
-Experiment type: Fact Checking
+Task : Fact Checking
+Submission : Add name, email-address and select file "result.ttl"
 Reference dataset: SW 2022 Test
-Result file: outputs/result.ttl
+Agree to the Disclaimer
+Run the Experiment
 ```
 
 ## GERBIL SCORE GENERATED
